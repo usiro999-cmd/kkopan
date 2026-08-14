@@ -1,0 +1,31 @@
+use clap::{Parser, Subcommand};
+
+#[derive(Parser)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Add {
+        task: String,
+    },
+
+    List,
+}
+
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Add { task } => {
+            println!("追加: {}", task);
+        }
+
+        Commands::List => {
+            println!("一覧表示");
+        }
+    }
+}
+
