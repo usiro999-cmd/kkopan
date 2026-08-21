@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quantum Twin Engine</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">MULTIVERSE PARALLEL QUANTUM CORE</p>
+      <h1>Quantum Twin Engine</h1>
+      <p>2つの量子回路を並列実行し、観測確率と量子状態の類似度を比較します。</p>
+    </header>
+
+    <section class="panel twin-controls">
+      <label>量子ビット数
+        <select id="qubit-count">
+          <option>1</option><option selected>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option>
+        </select>
+      </label>
+      <button id="compare" class="primary">ツイン実行</button>
+      <button id="preset">Bell比較プリセット</button>
+    </section>
+
+    <section class="twin-grid">
+      <article class="panel twin-circuit">
+        <div class="section-heading"><div><span class="step">A</span><h2>Universe Alpha</h2></div></div>
+        <label>回路（1行に1ゲート）
+          <textarea id="left-gates" spellcheck="false">H 0
+CX 0 1</textarea>
+        </label>
+        <div id="left-results" class="probabilities"></div>
+      </article>
+      <article class="panel twin-circuit">
+        <div class="section-heading"><div><span class="step">B</span><h2>Universe Beta</h2></div></div>
+        <label>回路（1行に1ゲート）
+          <textarea id="right-gates" spellcheck="false">X 0
+H 1</textarea>
+        </label>
+        <div id="right-results" class="probabilities"></div>
+      </article>
+    </section>
+
+    <section class="panel comparison">
+      <div class="section-heading"><div><span class="step">Δ</span><h2>Twin Comparison</h2></div></div>
+      <div class="metric"><strong id="similarity">—</strong><span>状態類似度</span></div>
+      <div class="metric"><strong id="distance">—</strong><span>確率分布距離</span></div>
+      <p id="error" role="alert"></p>
+    </section>
+  </main>
+  <script src="twin.js"></script>
+</body>
+</html>
