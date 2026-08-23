@@ -1,0 +1,6 @@
+qiskit==2.5.2
+qiskit-aer==0.17.2
+qdk[azure,qiskit]==1.31.0
+rdkit==2025.9.6
+jupyterlab==4.6.3
+ipykernel==7.3.0

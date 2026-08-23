@@ -1,0 +1,62 @@
+services:
+  quantum-os:
+    build:
+      context: .
+      args:
+        QUANTUM_UID: ${QUANTUM_UID:-1000}
+        QUANTUM_GID: ${QUANTUM_GID:-1000}
+    image: ${QUANTUM_OS_IMAGE:-multiverse-quantum-os:ubuntu-24.04}
+    environment:
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:?Set JUPYTER_TOKEN in .env}
+      AZURE_QUANTUM_RESOURCE_ID: ${AZURE_QUANTUM_RESOURCE_ID:-}
+      AZURE_QUANTUM_CONNECTION_STRING: ${AZURE_QUANTUM_CONNECTION_STRING:-}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
+      JUPYTER_PATH: /opt/ai-packs/current/share/jupyter
+    ports:
+      - "${JUPYTER_PORT:-8888}:8888"
+    volumes:
+      - ./workspace:/workspace
+      - ai_packs:/opt/ai-packs:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    restart: unless-stopped
+    labels:
+      com.multiverse.quantum-os.managed: "true"
+
+  updater:
+    build: ./updater
+    image: multiverse-quantum-os-updater:1
+    environment:
+      UPDATE_REPOSITORY: ${UPDATE_REPOSITORY:-usiro999-cmd/kkopan}
+      UPDATE_TAG_PREFIX: ${UPDATE_TAG_PREFIX:-quantum-os-v}
+      UPDATE_IMAGE_PREFIX: ${UPDATE_IMAGE_PREFIX:-ghcr.io/usiro999-cmd/kkopan/quantum-os}
+      UPDATE_PUBLIC_KEY: ${UPDATE_PUBLIC_KEY:-}
+      AI_PACK_TAG_PREFIX: ${AI_PACK_TAG_PREFIX:-quantum-ai-v}
+      AI_PACK_IMAGE_PREFIX: ${AI_PACK_IMAGE_PREFIX:-ghcr.io/usiro999-cmd/kkopan/quantum-ai-pack}
+      UPDATE_ADMIN_PASSWORD: ${UPDATE_ADMIN_PASSWORD:?Set UPDATE_ADMIN_PASSWORD in .env}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    ports:
+      - "${UPDATER_BIND:-127.0.0.1}:${UPDATER_PORT:-9090}:9090"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - updater_state:/var/lib/quantum-updater
+    group_add:
+      - "${DOCKER_GID:-999}"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    restart: unless-stopped
+
+volumes:
+  updater_state:
+  ai_packs:
+    labels:
+      com.multiverse.quantum-os.ai-packs: "true"

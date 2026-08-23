@@ -1,0 +1,10 @@
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+SQLAlchemy==2.0.52
+asyncpg==0.31.0
+pydantic-settings==2.15.0
+openai==2.54.0
+rdkit==2025.9.6
+qiskit==2.5.2
+qdk[azure,qiskit]==1.31.0
+pytest==8.4.2

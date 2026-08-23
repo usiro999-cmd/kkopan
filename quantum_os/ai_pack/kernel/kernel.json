@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "/opt/quantum/bin/python",
+    "-m",
+    "ipykernel_launcher",
+    "-f",
+    "{connection_file}"
+  ],
+  "display_name": "Multiverse Explainable AI",
+  "language": "python",
+  "env": {
+    "PYTHONPATH": "/opt/ai-packs/current/site-packages"
+  }
+}

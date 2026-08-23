@@ -8,3 +8,7 @@ target/
 __pycache__/
 *.py[cod]
 .venv/
+node_modules/
+.next/
+.pytest_cache/
+*.tsbuildinfo

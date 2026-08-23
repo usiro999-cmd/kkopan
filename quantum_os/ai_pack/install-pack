@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+case "${AI_PACK_VERSION:-}" in
+  *[!0-9.]*|"") echo "AI_PACK_VERSION is invalid" >&2; exit 64 ;;
+esac
+
+release="/target/releases/${AI_PACK_VERSION}"
+temporary="/target/releases/.${AI_PACK_VERSION}.tmp"
+mkdir -p /target/releases
+rm -rf "${temporary}"
+mkdir "${temporary}"
+cp -a /payload/. "${temporary}/"
+printf '%s\n' "${AI_PACK_VERSION}" >"${temporary}/VERSION"
+
+if [ -e "${release}" ]; then
+    rm -rf "${temporary}"
+else
+    mv "${temporary}" "${release}"
+fi
+
+ln -sfn "releases/${AI_PACK_VERSION}" /target/current.next
+mv -Tf /target/current.next /target/current
+echo "Installed Multiverse Explainable AI ${AI_PACK_VERSION}"

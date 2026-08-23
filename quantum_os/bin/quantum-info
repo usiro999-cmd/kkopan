@@ -1,0 +1,27 @@
+#!/opt/quantum/bin/python
+import importlib.metadata
+import json
+import os
+import platform
+
+
+PACKAGES = ("qiskit", "qiskit-aer", "qdk", "rdkit", "jupyterlab")
+
+
+def main() -> None:
+    resource_id = os.getenv("AZURE_QUANTUM_RESOURCE_ID", "")
+    connection_string = os.getenv("AZURE_QUANTUM_CONNECTION_STRING", "")
+    details = {
+        "os": platform.platform(),
+        "python": platform.python_version(),
+        "user": os.getenv("USER", "quantum"),
+        "packages": {
+            package: importlib.metadata.version(package) for package in PACKAGES
+        },
+        "azure_quantum_configured": bool(resource_id or connection_string),
+    }
+    print(json.dumps(details, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
