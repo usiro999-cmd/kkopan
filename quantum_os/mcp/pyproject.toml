@@ -1,0 +1,19 @@
+[project]
+name = "blueqat-mcp"
+version = "0.1.0"
+description = "Local, constrained MCP server for Blueqat circuit simulation"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "blueqat==2.0.4",
+  "mcp==1.26.0",
+]
+
+[project.scripts]
+blueqat-mcp = "blueqat_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

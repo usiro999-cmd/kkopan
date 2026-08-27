@@ -1,0 +1,19 @@
+{
+	"servers": {
+		"blueqat": {
+			"type": "stdio",
+			"command": "uv",
+			"args": [
+				"run",
+				"--project",
+				"${workspaceFolder}/quantum_os/mcp",
+				"blueqat-mcp"
+			]
+		},
+		"conohaVpsMcp": {
+			"type": "http",
+			"url": "https://api.conoha.jp/vps/mcp"
+		}
+	},
+	"inputs": []
+}

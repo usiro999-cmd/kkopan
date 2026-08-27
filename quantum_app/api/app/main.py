@@ -13,6 +13,10 @@ from app.config import get_settings
 from app.database import Base, engine, get_session
 from app.models import QuantumJobRecord, ScreeningRun
 from app.schemas import (
+    FusionAnalysisResponse,
+    FusionAssistantRequest,
+    FusionAssistantResponse,
+    FusionScenario,
     QuantumConnectionStatus,
     QuantumJobRequest,
     QuantumJobResponse,
@@ -30,6 +34,8 @@ from app.services.azure_quantum import (
     valid_resource_id,
 )
 from app.services.screening import DISCLAIMER, screen_twin
+from app.services.fusion import FusionInputs, analyze_plasma
+from app.services.fusion_assistant import ask_fusion_assistant
 from app.services.tutor import AIConfigurationError, ask_tutor
 
 
@@ -62,6 +68,46 @@ app.add_middleware(
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/api/v1/fusion/analyze", response_model=FusionAnalysisResponse)
+async def analyze_fusion_scenario(
+    request: FusionScenario,
+) -> FusionAnalysisResponse:
+    result = await asyncio.to_thread(
+        analyze_plasma,
+        FusionInputs(
+            temperature_kev=request.temperature_kev,
+            density_1e20_m3=request.density_1e20_m3,
+            confinement_time_s=request.confinement_time_s,
+            magnetic_field_t=request.magnetic_field_t,
+            major_radius_m=request.major_radius_m,
+            minor_radius_m=request.minor_radius_m,
+            elongation=request.elongation,
+            external_heating_mw=request.external_heating_mw,
+        ),
+    )
+    return FusionAnalysisResponse(name=request.name, **result)
+
+
+@app.post(
+    "/api/v1/fusion/assistant",
+    response_model=FusionAssistantResponse,
+)
+async def fusion_assistant(
+    request: FusionAssistantRequest,
+) -> FusionAssistantResponse:
+    try:
+        answer = await ask_fusion_assistant(
+            request.question,
+            request.scenario.model_dump() if request.scenario else None,
+            settings,
+        )
+    except AIConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    return FusionAssistantResponse(
+        answer=answer, model=settings.azure_openai_deployment
+    )
 
 
 @app.post(

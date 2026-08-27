@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const targets = ["D2", "5-HT2A", "NMDA", "M1"] as const;
@@ -371,6 +372,11 @@ export default function Home() {
       <aside className="warning">
         教育専用です。候補IDと評価ラベルは合成であり、診断、治療、臨床、実際の創薬判断には使用できません。
       </aside>
+      <Link className="fusion-link" href="/fusion">
+        <span>NEW RESEARCH WORKSPACE</span>
+        <strong>Fusion Research Copilot</strong>
+        <i>核融合プラズマ解析とAI研究支援を開く →</i>
+      </Link>
       <section className="twin-grid">
         <ProfileEditor label="Alpha" profile={alpha} safety={alphaSafety} onProfile={setAlpha} onSafety={setAlphaSafety} />
         <ProfileEditor label="Beta" profile={beta} safety={betaSafety} onProfile={setBeta} onSafety={setBetaSafety} />

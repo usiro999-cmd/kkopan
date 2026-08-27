@@ -26,6 +26,21 @@ docker compose -f compose.yml run --rm quantum-os bash
 Azure Quantumを使う場合は `.env` にWorkspaceとAzure Identityの設定を追加します。
 秘密情報をイメージへ埋め込まず、Gitにも登録しないでください。
 
+## Blueqat MCP
+
+VS Codeでこのリポジトリを開くと、[`.vscode/mcp.json`](../.vscode/mcp.json)の
+`blueqat`サーバーを起動できます。初回起動時に`uv`がPython 3.12と固定済み依存関係を
+準備します。
+
+MCPはBlueqat 2.0.4のNumPyバックエンドを使い、次のツールを提供します。
+
+- `simulate_circuit`: 測定結果とOpenQASM 2を返す
+- `circuit_statevector`: 非ゼロ振幅を返す
+- `export_qasm`: 検証済み回路をOpenQASM 2へ変換する
+
+任意のPythonコードは実行せず、許可ゲート、最大20量子ビット、最大500ゲート、
+最大10,000 shotsに制限しています。
+
 ## Webアップデート
 
 `http://localhost:9090` を開き、ユーザー名 `admin` と

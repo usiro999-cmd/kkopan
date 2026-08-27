@@ -1,7 +1,8 @@
 target/
 .env
 *.db
-.vscode/
+.vscode/*
+!.vscode/mcp.json
 .idea/
 
 *.save

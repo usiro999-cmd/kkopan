@@ -122,3 +122,51 @@ class QuantumJobResponse(BaseModel):
     status: str
     counts: dict[str, int] | None = None
     created_at: datetime
+
+
+class FusionScenario(BaseModel):
+    name: str = Field(default="Baseline tokamak", min_length=1, max_length=100)
+    temperature_kev: float = Field(default=15, ge=1, le=100)
+    density_1e20_m3: float = Field(default=1.0, gt=0, le=10)
+    confinement_time_s: float = Field(default=3.0, gt=0, le=100)
+    magnetic_field_t: float = Field(default=5.3, gt=0, le=30)
+    major_radius_m: float = Field(default=6.2, gt=0, le=30)
+    minor_radius_m: float = Field(default=2.0, gt=0, le=10)
+    elongation: float = Field(default=1.7, ge=1, le=3)
+    external_heating_mw: float = Field(default=50, ge=0, le=1000)
+
+
+class FusionAnalysisResponse(BaseModel):
+    name: str
+    volume_m3: float
+    plasma_pressure_kpa: float
+    beta_percent: float
+    triple_product_kev_s_m3: float
+    lawson_reference_ratio: float
+    stored_energy_mj: float
+    dt_reactivity_m3_s: float
+    fusion_power_mw: float
+    alpha_heating_mw: float
+    transport_loss_mw: float
+    plasma_gain_q: float | None
+    net_heating_margin_mw: float
+    diagnostics: list[str]
+    assumptions: list[str]
+    disclaimer: str
+
+
+class FusionAssistantRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=2000)
+    scenario: FusionAnalysisResponse | None = None
+
+    @field_validator("question")
+    @classmethod
+    def reject_blank_question(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("question must not be blank")
+        return value.strip()
+
+
+class FusionAssistantResponse(BaseModel):
+    answer: str
+    model: str
