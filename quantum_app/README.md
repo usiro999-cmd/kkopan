@@ -30,6 +30,9 @@ docker compose up --build
 ポートが使用中の場合は `.env` の `WEB_PORT` / `API_PORT` を変更できます。
 VPSへ公開する場合は、`PUBLIC_API_URL`と`CORS_ORIGINS`を実際のHTTPS URL、
 またはサーバーの公開IPとポートへ変更してからビルドしてください。
+同一オリジンで公開する場合は`PUBLIC_API_URL`を空にすると、Next.jsが
+`/api`を内部APIコンテナへ転送します。`API_BIND=127.0.0.1`にすると
+FastAPIをインターネットへ直接公開せずに運用できます。
 
 Azure OpenAIチューターを使う場合は、`.env` にエンドポイント、APIキー、
 デプロイ名を設定してください。未設定の場合、チューターAPIは `503` を返します。
