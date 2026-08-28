@@ -34,6 +34,14 @@ VPSへ公開する場合は、`PUBLIC_API_URL`と`CORS_ORIGINS`を実際のHTTPS
 `/api`を内部APIコンテナへ転送します。`API_BIND=127.0.0.1`にすると
 FastAPIをインターネットへ直接公開せずに運用できます。
 
+ConoHa VPSでは、リポジトリ取得後に次のコマンドで初期設定、ビルド、
+ヘルスチェックまで実行できます。既存の`.env`とPostgreSQLデータは保持します。
+
+```bash
+cd /opt/kkopan
+./quantum_app/deploy-conoha.sh
+```
+
 Azure OpenAIチューターを使う場合は、`.env` にエンドポイント、APIキー、
 デプロイ名を設定してください。未設定の場合、チューターAPIは `503` を返します。
 
