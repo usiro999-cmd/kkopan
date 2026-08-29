@@ -51,9 +51,16 @@ fi
 docker compose -f compose.yml up --build -d research-db quantum-os
 if [[ ! -f workspace/quantum_ai_drug_starter.ipynb ]]; then
   cp examples/quantum_ai_drug_starter.ipynb workspace/
-  docker compose -f compose.yml run --rm --user root --entrypoint chown \
-    quantum-os quantum:quantum /workspace/quantum_ai_drug_starter.ipynb
 fi
+quantum_uid="$(sed -n 's/^QUANTUM_UID=//p' .env)"
+quantum_gid="$(sed -n 's/^QUANTUM_GID=//p' .env)"
+quantum_uid="${quantum_uid:-1000}"
+quantum_gid="${quantum_gid:-1000}"
+if [[ ! "$quantum_uid" =~ ^[0-9]+$ || ! "$quantum_gid" =~ ^[0-9]+$ ]]; then
+  echo "QUANTUM_UID and QUANTUM_GID must be numeric." >&2
+  exit 1
+fi
+chown -R "$quantum_uid:$quantum_gid" workspace
 
 for attempt in {1..60}; do
   if curl --fail --silent \
