@@ -26,6 +26,33 @@ cd /opt/kkopan
 ./quantum_os/deploy-conoha.sh
 ```
 
+UbuntuのDocker導入からまとめて実行する場合は、rootで次を実行します。
+
+```bash
+cd /opt/kkopan
+./quantum_os/setup-ubuntu.sh
+```
+
+起動後、`quantum_ai_drug_starter.ipynb`からRDKit、DeepChem、PennyLane、
+Qiskit、PostgreSQLを接続する教育用スターターを実行できます。
+
+### JupyterLabをHTTPSで一時公開
+
+Cloudflare Quick Tunnelを使うため、VPSの8888番ポートを外部へ開ける必要は
+ありません。公開前にノートブックへ秘密情報がないことを確認してください。
+
+```bash
+cd /opt/kkopan
+./quantum_os/start-public-jupyter.sh
+```
+
+表示されたHTTPS URLへアクセスし、同時に表示されるJupyterトークンでログインします。
+URLはトンネルを作り直すと変わります。停止する場合は次を実行します。
+
+```bash
+docker rm -f quantum-jupyter-tunnel
+```
+
 ## CLI
 
 ```bash

@@ -49,6 +49,11 @@ if [[ -z "$jupyter_token" ]]; then
 fi
 
 docker compose -f compose.yml up --build -d research-db quantum-os
+if [[ ! -f workspace/quantum_ai_drug_starter.ipynb ]]; then
+  cp examples/quantum_ai_drug_starter.ipynb workspace/
+  docker compose -f compose.yml run --rm --user root --entrypoint chown \
+    quantum-os quantum:quantum /workspace/quantum_ai_drug_starter.ipynb
+fi
 
 for attempt in {1..60}; do
   if curl --fail --silent \
