@@ -1,18 +1,30 @@
 # Multiverse Quantum OS
 
 Ubuntu 24.04ベースのDocker量子開発環境です。Qiskit、Aer、QDK、
-Azure Quantum SDK、RDKit、JupyterLabを非rootユーザーで実行します。
+Azure Quantum SDK、RDKit、PennyLane、DeepChem、JupyterLabをPython 3.12の
+非rootユーザーで実行します。研究データ用PostgreSQL 17も同時に起動します。
+DeepChem 2.8.0は純PythonパッケージをPython 3.12で検証し、依存ライブラリを
+明示固定して導入します。TensorFlow/PyTorch依存モデルは含みません。
 
 ## 起動
 
 ```bash
 cd quantum_os
 cp .env.example .env
-# JUPYTER_TOKENを長いランダム値へ変更
+# JUPYTER_TOKEN、POSTGRES_PASSWORD、UPDATE_ADMIN_PASSWORDを長いランダム値へ変更
 docker compose -f compose.yml up --build -d
 ```
 
 ブラウザで `http://localhost:8888/lab?token=<JUPYTER_TOKEN>` を開きます。
+Jupyterは標準でVPSのlocalhostだけにバインドされます。
+
+ConoHa VPSでは、リポジトリ取得後に次の1コマンドで認証情報生成、ビルド、
+PostgreSQL起動、ヘルスチェックまで実行できます。
+
+```bash
+cd /opt/kkopan
+./quantum_os/deploy-conoha.sh
+```
 
 ## CLI
 
@@ -21,6 +33,18 @@ docker compose -f compose.yml run --rm quantum-os quantum-info
 docker compose -f compose.yml run --rm quantum-os \
   python /opt/quantum-os/examples/bell.py
 docker compose -f compose.yml run --rm quantum-os bash
+```
+
+PythonからPostgreSQLへ接続する場合は、コンテナ内の`DATABASE_URL`を使用します。
+
+```python
+import os
+import psycopg
+
+with psycopg.connect(os.environ["DATABASE_URL"]) as connection:
+    with connection.cursor() as cursor:
+        cursor.execute("select version()")
+        print(cursor.fetchone()[0])
 ```
 
 Azure Quantumを使う場合は `.env` にWorkspaceとAzure Identityの設定を追加します。

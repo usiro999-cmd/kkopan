@@ -1,4 +1,23 @@
 services:
+  research-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-quantum_research}
+      POSTGRES_USER: ${POSTGRES_USER:-quantum}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-quantum} -d ${POSTGRES_DB:-quantum_research}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   quantum-os:
     build:
       context: .
@@ -14,8 +33,9 @@ services:
       AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
       AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
       JUPYTER_PATH: /opt/ai-packs/current/share/jupyter
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quantum}:${POSTGRES_PASSWORD}@research-db:5432/${POSTGRES_DB:-quantum_research}
     ports:
-      - "${JUPYTER_PORT:-8888}:8888"
+      - "${JUPYTER_BIND:-127.0.0.1}:${JUPYTER_PORT:-8888}:8888"
     volumes:
       - ./workspace:/workspace
       - ai_packs:/opt/ai-packs:ro
@@ -26,6 +46,9 @@ services:
     tmpfs:
       - /tmp:size=512m,mode=1777
     restart: unless-stopped
+    depends_on:
+      research-db:
+        condition: service_healthy
     labels:
       com.multiverse.quantum-os.managed: "true"
 
@@ -56,6 +79,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  postgres_data:
   updater_state:
   ai_packs:
     labels:

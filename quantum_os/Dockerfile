@@ -23,6 +23,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
+    python3 -c "import sys; assert sys.version_info[:2] == (3, 12), sys.version"; \
     existing_group="$(getent group "${QUANTUM_GID}" | cut -d: -f1 || true)"; \
     if [ -n "${existing_group}" ] && [ "${existing_group}" != "quantum" ]; then \
         groupmod --new-name quantum "${existing_group}"; \
@@ -46,6 +47,10 @@ COPY requirements.txt /tmp/requirements.txt
 RUN /opt/quantum/bin/python -m pip install --no-cache-dir --upgrade pip \
     && /opt/quantum/bin/python -m pip install \
         --no-cache-dir --requirement /tmp/requirements.txt \
+    && /opt/quantum/bin/python -m pip install \
+        --no-cache-dir --ignore-requires-python --no-deps deepchem==2.8.0 \
+    && /opt/quantum/bin/python -c \
+        "import deepchem, pennylane, psycopg, qiskit; from rdkit import Chem" \
     && rm /tmp/requirements.txt
 
 COPY --chmod=755 bin/quantum-info /usr/local/bin/quantum-info
