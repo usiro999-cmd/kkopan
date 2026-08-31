@@ -1,0 +1,62 @@
+asyncapi: 3.0.0
+info:
+  title: SatDrone Domain Events
+  version: 0.1.0
+  description: Asynchronous contracts exchanged through RabbitMQ.
+defaultContentType: application/json
+channels:
+  anomalyDetected:
+    address: anomaly.detected.v1
+    messages:
+      anomalyDetected:
+        $ref: '#/components/messages/AnomalyDetected'
+  missionRequested:
+    address: mission.requested.v1
+    messages:
+      missionRequested:
+        $ref: '#/components/messages/MissionRequested'
+operations:
+  publishAnomaly:
+    action: send
+    channel:
+      $ref: '#/channels/anomalyDetected'
+  receiveAnomaly:
+    action: receive
+    channel:
+      $ref: '#/channels/anomalyDetected'
+  requestMission:
+    action: send
+    channel:
+      $ref: '#/channels/missionRequested'
+components:
+  messages:
+    AnomalyDetected:
+      name: anomaly.detected.v1
+      payload:
+        $ref: '#/components/schemas/DomainEvent'
+    MissionRequested:
+      name: mission.requested.v1
+      payload:
+        $ref: '#/components/schemas/DomainEvent'
+  schemas:
+    DomainEvent:
+      type: object
+      required: [event_id, event_type, occurred_at, source, correlation_id, payload]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        source:
+          type: string
+        correlation_id:
+          type: string
+          format: uuid
+        payload:
+          type: object
+          additionalProperties: true
+

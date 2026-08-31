@@ -1,0 +1,142 @@
+x-service: &service
+  build:
+    context: .
+    dockerfile: services/Dockerfile
+  restart: unless-stopped
+  env_file: .env
+  depends_on:
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+  networks: [satdrone]
+
+services:
+  web:
+    build:
+      context: apps/web
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL:-https://demotiles.maplibre.org/style.json}
+    restart: unless-stopped
+    ports:
+      - "5173:8080"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks: [satdrone]
+
+  api-gateway:
+    <<: *service
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_PATH: services/api-gateway
+    ports:
+      - "8000:8080"
+    healthcheck: &healthcheck
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health/live')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  imagery:
+    <<: *service
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_PATH: services/imagery
+    healthcheck: *healthcheck
+
+  inference:
+    <<: *service
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_PATH: services/inference
+    healthcheck: *healthcheck
+
+  mission:
+    <<: *service
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_PATH: services/mission
+    healthcheck: *healthcheck
+
+  drone:
+    <<: *service
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_PATH: services/drone
+    healthcheck: *healthcheck
+
+  stream:
+    <<: *service
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_PATH: services/stream
+    healthcheck: *healthcheck
+
+  postgres:
+    image: postgis/postgis:17-3.5-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-satdrone}
+      POSTGRES_USER: ${POSTGRES_USER:-satdrone}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [satdrone]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [satdrone]
+
+  rabbitmq:
+    image: rabbitmq:4.0-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-satdrone}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-change-me}
+    ports:
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [satdrone]
+
+networks:
+  satdrone:
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
