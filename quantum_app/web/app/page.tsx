@@ -1,407 +1,252 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
+import { useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const targets = ["D2", "5-HT2A", "NMDA", "M1"] as const;
-type Target = (typeof targets)[number];
-type Profile = Record<Target, number>;
+type IconName =
+  | "activity"
+  | "alert"
+  | "arrow"
+  | "chevron"
+  | "cloud"
+  | "drone"
+  | "farm"
+  | "grid"
+  | "layers"
+  | "ocean"
+  | "quantum"
+  | "satellite"
+  | "settings"
+  | "users";
 
-type Candidate = {
-  id: string;
-  rank: number;
-  score: number;
-  quantum_fidelity: number;
-  descriptors: {
-    molecular_weight: number;
-    log_p: number;
-    h_bond_donors: number;
-    polar_surface_area: number;
+function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
+  const paths: Record<IconName, React.ReactNode> = {
+    activity: <><path d="M3 12h4l2-7 4 14 2-7h6" /></>,
+    alert: <><path d="M12 9v4" /><path d="M12 17h.01" /><path d="m10.3 3.5-8 14A2 2 0 0 0 4 20h16a2 2 0 0 0 1.7-2.5l-8-14a2 2 0 0 0-3.4 0Z" /></>,
+    arrow: <><path d="M5 12h14" /><path d="m14 7 5 5-5 5" /></>,
+    chevron: <><path d="m9 18 6-6-6-6" /></>,
+    cloud: <><path d="M17.5 19H6a4 4 0 0 1-.4-8 6 6 0 0 1 11.6-1.6A4.8 4.8 0 0 1 17.5 19Z" /></>,
+    drone: <><path d="M8 12h8" /><path d="M12 9v7" /><path d="M9 16h6l-1 3h-4Z" /><path d="M5 8h3l1 4H5a2 2 0 1 1 0-4Z" /><path d="M19 8h-3l-1 4h4a2 2 0 1 0 0-4Z" /><path d="M5 6V4m14 2V4" /></>,
+    farm: <><path d="M3 20h18" /><path d="M5 20V9l7-5 7 5v11" /><path d="M9 20v-6h6v6" /><path d="M8 10h.01m8 0h.01" /></>,
+    grid: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
+    layers: <><path d="m12 2 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5" /><path d="m3 17 9 5 9-5" /></>,
+    ocean: <><path d="M3 15c2 0 2-1 4-1s2 1 4 1 2-1 4-1 2 1 4 1 2-1 2-1" /><path d="M3 20c2 0 2-1 4-1s2 1 4 1 2-1 4-1 2 1 4 1 2-1 2-1" /><path d="m7 11 5-8 5 8" /><path d="M12 3v8" /></>,
+    quantum: <><ellipse cx="12" cy="12" rx="10" ry="4.5" /><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(60 12 12)" /><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(120 12 12)" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></>,
+    satellite: <><path d="m13 7 4 4-6 6-4-4 6-6Z" /><path d="m16 4 4 4-3 3-4-4 3-3Zm-9 9 4 4-3 3-4-4 3-3Z" /><path d="m14 14 5 5M5 5l5 5" /></>,
+    settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" /></>,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.9m-2-12a4 4 0 0 1 0 7.8" /></>,
   };
-  explanation: Record<string, number>;
-};
 
-type Screening = {
-  id: number;
-  alpha: { candidates: Candidate[] };
-  beta: { candidates: Candidate[] };
-  comparison: { spearman_rho: number; same_leader: boolean };
-  disclaimer: string;
-};
-
-type QuantumTarget = {
-  name: string;
-  description?: string;
-};
-
-type QuantumJob = {
-  id: number;
-  azure_job_id: string;
-  target: string;
-  circuit: string;
-  shots: number;
-  status: string;
-  counts?: Record<string, number>;
-};
-
-const initialAlpha: Profile = { D2: 0.65, "5-HT2A": 0.75, NMDA: 0.6, M1: 0.55 };
-const initialBeta: Profile = { D2: 0.45, "5-HT2A": 0.6, NMDA: 0.8, M1: 0.7 };
-
-function ProfileEditor({
-  label,
-  profile,
-  safety,
-  onProfile,
-  onSafety,
-}: {
-  label: string;
-  profile: Profile;
-  safety: number;
-  onProfile: (profile: Profile) => void;
-  onSafety: (value: number) => void;
-}) {
   return (
-    <article className="card profile">
-      <span className="tag">{label}</span>
-      <h2>Target Profile {label}</h2>
-      {targets.map((target) => (
-        <label key={target}>
-          <span>{target}</span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={profile[target]}
-            onChange={(event) =>
-              onProfile({ ...profile, [target]: Number(event.target.value) })
-            }
-          />
-          <output>{profile[target].toFixed(2)}</output>
-        </label>
-      ))}
-      <label>
-        <span>Safety weight</span>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={safety}
-          onChange={(event) => onSafety(Number(event.target.value))}
-        />
-        <output>{safety.toFixed(2)}</output>
-      </label>
-    </article>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {paths[name]}
+    </svg>
   );
 }
 
-function Ranking({ label, candidates }: { label: string; candidates: Candidate[] }) {
-  return (
-    <article className="card">
-      <span className="tag">{label}</span>
-      <h2>{label} Ranking</h2>
-      {candidates.map((candidate) => (
-        <details className="candidate" key={candidate.id}>
-          <summary>
-            <strong>#{candidate.rank} {candidate.id}</strong>
-            <div className="track"><i style={{ width: `${candidate.score * 100}%` }} /></div>
-            <span>{(candidate.score * 100).toFixed(1)}%</span>
-          </summary>
-          <div className="descriptor-grid">
-            <span>Fidelity <b>{candidate.quantum_fidelity.toFixed(3)}</b></span>
-            <span>MolWt <b>{candidate.descriptors.molecular_weight}</b></span>
-            <span>LogP <b>{candidate.descriptors.log_p}</b></span>
-            <span>TPSA <b>{candidate.descriptors.polar_surface_area}</b></span>
-          </div>
-        </details>
-      ))}
-    </article>
-  );
-}
+const navItems: { label: string; icon: IconName }[] = [
+  { label: "概要", icon: "grid" },
+  { label: "衛星画像", icon: "satellite" },
+  { label: "農地診断", icon: "farm" },
+  { label: "災害検知", icon: "alert" },
+  { label: "海洋監視", icon: "ocean" },
+  { label: "ドローン", icon: "drone" },
+  { label: "量子最適化", icon: "quantum" },
+];
 
-function Curriculum() {
-  return (
-    <section className="curriculum">
-      <p className="eyebrow">GRADUATE CURRICULUM</p>
-      <h2>量子化学情報学・実験計画・モデル批判</h2>
-      <div className="theory-grid">
-        <article className="card">
-          <span className="tag">QISKIT</span>
-          <h3>量子特徴写像</h3>
-          <code>|ψ(x)⟩ = Ucx ∏ᵢ Ry(πxᵢ)|0⟩</code>
-          <code>F(x,z) = |⟨ψ(x)|ψ(z)⟩|²</code>
-          <p>Fidelityは状態空間の類似度であり、生物学的エビデンスではありません。</p>
-        </article>
-        <article className="card">
-          <span className="tag">RDKIT</span>
-          <h3>分子記述子</h3>
-          <p>MolWt、LogP、水素結合供与体、TPSAを計算し、記述子の尺度と交絡を検討します。</p>
-          <code>xmol = [MolWt, LogP, HBD, TPSA]</code>
-        </article>
-        <article className="card">
-          <span className="tag">STATISTICS</span>
-          <h3>順位安定性</h3>
-          <code>ρ = 1 − 6Σdᵢ² / n(n²−1)</code>
-          <p>目的関数を変えたツイン実験から、ランキングの感度を批判的に評価します。</p>
-        </article>
-      </div>
-    </section>
-  );
-}
+const features: { title: string; description: string; icon: IconName; tone: string; meta: string }[] = [
+  { title: "衛星画像取得", description: "最新の地球観測データを取得・解析", icon: "satellite", tone: "blue", meta: "12 衛星 接続中" },
+  { title: "AI農地診断", description: "生育状況・土壌・収穫予測をAIで可視化", icon: "farm", tone: "green", meta: "精度 94.8%" },
+  { title: "災害検知", description: "洪水・土砂・火災をリアルタイム検知", icon: "alert", tone: "orange", meta: "24時間 監視中" },
+  { title: "海洋監視", description: "海水温・漁場・赤潮リスクを一元管理", icon: "ocean", tone: "cyan", meta: "8 海域 解析中" },
+  { title: "ドローン連携", description: "自動航行・撮影・散布を統合制御", icon: "drone", tone: "purple", meta: "5 機 オンライン" },
+  { title: "量子最適化", description: "複雑な運用計画を量子技術で高速化", icon: "quantum", tone: "violet", meta: "QPU Ready" },
+];
 
-function QuantumCloud() {
-  const [configured, setConfigured] = useState(false);
-  const [targets, setTargets] = useState<QuantumTarget[]>([]);
-  const [target, setTarget] = useState("");
-  const [shots, setShots] = useState(100);
-  const [job, setJob] = useState<QuantumJob | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+const audiences = [
+  { label: "農家", value: "124", icon: "farm" as IconName },
+  { label: "漁業者", value: "38", icon: "ocean" as IconName },
+  { label: "自治体", value: "16", icon: "cloud" as IconName },
+  { label: "企業", value: "27", icon: "users" as IconName },
+];
 
-  async function loadConnection() {
-    setError("");
-    setLoading(true);
-    try {
-      const statusResponse = await fetch(`${API_URL}/api/v1/quantum/status`);
-      const status = await statusResponse.json();
-      if (!statusResponse.ok) throw new Error(status.detail ?? "Status request failed");
-      setConfigured(status.configured);
-      if (!status.configured) return;
-      const targetsResponse = await fetch(`${API_URL}/api/v1/quantum/targets`);
-      const targetData = await targetsResponse.json();
-      if (!targetsResponse.ok) throw new Error(targetData.detail ?? "Target discovery failed");
-      setTargets(targetData);
-      const selected = status.default_target && targetData.some(
-        (item: QuantumTarget) => item.name === status.default_target,
-      ) ? status.default_target : targetData[0]?.name ?? "";
-      setTarget(selected);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Azure Quantum connection failed");
-    } finally {
-      setLoading(false);
-    }
-  }
+const technologyStack: { category: string; name: string; detail: string; icon: IconName; tone: string }[] = [
+  { category: "衛星データ", name: "Sentinel-2", detail: "無料・光学観測", icon: "satellite", tone: "blue" },
+  { category: "ドローン", name: "DJI", detail: "撮影・自動航行", icon: "drone", tone: "purple" },
+  { category: "AI", name: "Python + PyTorch", detail: "画像解析・予測", icon: "activity", tone: "green" },
+  { category: "地図", name: "QGIS", detail: "地理空間解析", icon: "layers", tone: "cyan" },
+  { category: "クラウド", name: "Microsoft Azure", detail: "データ・AI基盤", icon: "cloud", tone: "blue" },
+];
 
-  useEffect(() => {
-    loadConnection();
-  }, []);
-
-  async function submitJob() {
-    setError("");
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/v1/quantum/jobs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, circuit: "bell", shots }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail ?? "Job submission failed");
-      setJob(data);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Job submission failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function refreshJob() {
-    if (!job) return;
-    setError("");
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/v1/quantum/jobs/${job.id}`);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail ?? "Job retrieval failed");
-      setJob(data);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Job retrieval failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <section className="card quantum-cloud">
-      <div className="cloud-heading">
-        <div>
-          <span className="tag">AZURE QUANTUM · QDK</span>
-          <h2>実量子コンピューターAPI</h2>
-          <p>QiskitでBell回路を生成し、選択したAzure Quantumターゲットへ送信します。</p>
-        </div>
-        <strong className={configured ? "connected" : "disconnected"}>
-          {loading ? "確認中" : configured ? "設定済み" : "未設定"}
-        </strong>
-      </div>
-      {configured ? (
-        <div className="cloud-controls">
-          <label>
-            <span>Quantum target</span>
-            <select value={target} onChange={(event) => setTarget(event.target.value)}>
-              {targets.map((item) => <option key={item.name}>{item.name}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Shots</span>
-            <input
-              type="number"
-              min="1"
-              max="10000"
-              value={shots}
-              onChange={(event) => setShots(Number(event.target.value))}
-            />
-          </label>
-          <button onClick={submitJob} disabled={loading || !target}>
-            Bell回路を送信
-          </button>
-        </div>
-      ) : (
-        <p className="setup-note">
-          `.env` にAZURE_QUANTUM_RESOURCE_IDとAzure Identity認証情報を設定し、
-          APIコンテナを再起動してください。
-        </p>
-      )}
-      {job && (
-        <div className="job-card">
-          <div><span>Job</span><b>{job.azure_job_id}</b></div>
-          <div><span>Target</span><b>{job.target}</b></div>
-          <div><span>Status</span><b>{job.status}</b></div>
-          <button onClick={refreshJob} disabled={loading}>状態を更新</button>
-          {job.counts && (
-            <div className="counts">
-              {Object.entries(job.counts).map(([state, count]) => (
-                <span key={state}>|{state}⟩ <b>{count}</b></span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      {error && <p className="error">{error}</p>}
-    </section>
-  );
-}
-
-function Tutor({ screeningId }: { screeningId?: number }) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function ask(event: FormEvent) {
-    event.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/v1/tutor`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, screening_id: screeningId }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail ?? "Tutor request failed");
-      setAnswer(data.answer);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Tutor request failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <section className="card tutor">
-      <span className="tag">AZURE OPENAI</span>
-      <h2>研究チューター</h2>
-      <form onSubmit={ask}>
-        <textarea
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="例: Fidelityと結合親和性を区別して説明してください"
-          minLength={3}
-          maxLength={2000}
-          required
-        />
-        <button disabled={loading}>{loading ? "解析中…" : "質問する"}</button>
-      </form>
-      {answer && <p className="answer">{answer}</p>}
-      {error && <p className="error">{error}</p>}
-    </section>
-  );
-}
+const quantumUseCases = [
+  "ドローンの飛行ルート最適化",
+  "複数機の協調運用",
+  "監視エリアの優先順位計算",
+  "災害予測シミュレーション",
+];
 
 export default function Home() {
-  const [alpha, setAlpha] = useState(initialAlpha);
-  const [beta, setBeta] = useState(initialBeta);
-  const [alphaSafety, setAlphaSafety] = useState(0.35);
-  const [betaSafety, setBetaSafety] = useState(0.6);
-  const [result, setResult] = useState<Screening | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function runScreening() {
-    setError("");
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/v1/screenings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "Graduate twin experiment",
-          alpha: { profile: alpha, safety_weight: alphaSafety },
-          beta: { profile: beta, safety_weight: betaSafety },
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail ?? "Screening failed");
-      setResult(data);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Screening failed");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [activeNav, setActiveNav] = useState("概要");
+  const [period, setPeriod] = useState("本日");
 
   return (
-    <main>
-      <header>
-        <p className="eyebrow">NEXT.JS · FASTAPI · POSTGRESQL · QISKIT · RDKIT</p>
-        <h1>Multiverse Quantum AI Academy</h1>
-        <p>大学院レベルの量子AI創薬ツイン実験環境</p>
-      </header>
-      <aside className="warning">
-        教育専用です。候補IDと評価ラベルは合成であり、診断、治療、臨床、実際の創薬判断には使用できません。
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark"><Icon name="satellite" size={23} /></div>
+          <div><strong>SpaceAI</strong><span>KAWARAMACHI</span></div>
+        </div>
+        <nav aria-label="メインナビゲーション">
+          <p className="nav-label">PLATFORM</p>
+          {navItems.map((item) => (
+            <button
+              className={activeNav === item.label ? "nav-item active" : "nav-item"}
+              key={item.label}
+              onClick={() => setActiveNav(item.label)}
+            >
+              <Icon name={item.icon} size={19} />
+              <span>{item.label}</span>
+              {item.label === "災害検知" && <i>2</i>}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <button className="nav-item"><Icon name="settings" size={19} /><span>設定</span></button>
+          <div className="system-state"><span /><div><strong>システム正常</strong><small>全サービス稼働中</small></div></div>
+        </div>
       </aside>
-      <Link className="fusion-link" href="/fusion">
-        <span>NEW RESEARCH WORKSPACE</span>
-        <strong>Fusion Research Copilot</strong>
-        <i>核融合プラズマ解析とAI研究支援を開く →</i>
-      </Link>
-      <section className="twin-grid">
-        <ProfileEditor label="Alpha" profile={alpha} safety={alphaSafety} onProfile={setAlpha} onSafety={setAlphaSafety} />
-        <ProfileEditor label="Beta" profile={beta} safety={betaSafety} onProfile={setBeta} onSafety={setBetaSafety} />
-      </section>
-      <button className="run" onClick={runScreening} disabled={loading}>
-        {loading ? "RDKit + Qiskit解析中…" : "ツイン・スクリーニング実行"}
-      </button>
-      {error && <p className="error">{error}</p>}
-      {result && (
-        <>
-          <section className="metrics card">
-            <div><strong>{result.comparison.spearman_rho.toFixed(2)}</strong><span>Spearman ρ</span></div>
-            <div><strong>{result.comparison.same_leader ? "一致" : "不一致"}</strong><span>首位候補</span></div>
-            <div><strong>#{result.id}</strong><span>PostgreSQL Run</span></div>
-          </section>
-          <section className="twin-grid">
-            <Ranking label="Alpha" candidates={result.alpha.candidates} />
-            <Ranking label="Beta" candidates={result.beta.candidates} />
-          </section>
-          <p className="disclaimer">{result.disclaimer}</p>
-        </>
-      )}
-      <Curriculum />
-      <QuantumCloud />
-      <Tutor screeningId={result?.id} />
-    </main>
+
+      <main className="dashboard">
+        <header className="topbar">
+          <div>
+            <p className="breadcrumb">SpaceAI / <span>{activeNav}</span></p>
+            <h1>おはようございます、河原町さん</h1>
+            <p className="subtitle">宇宙から、地域の未来を見守ります。</p>
+          </div>
+          <div className="top-actions">
+            <div className="live-pill"><span /> LIVE</div>
+            <button className="notification" aria-label="通知"><Icon name="alert" size={19} /><b>2</b></button>
+            <button className="profile"><span>河</span><div><strong>河原町オフィス</strong><small>管理者</small></div><Icon name="chevron" size={14} /></button>
+          </div>
+        </header>
+
+        <section className="hero-grid">
+          <article className="earth-panel">
+            <div className="orbit orbit-one" />
+            <div className="orbit orbit-two" />
+            <div className="earth">
+              <div className="land land-one" />
+              <div className="land land-two" />
+              <div className="land land-three" />
+              <div className="scan-line" />
+              <span className="map-point point-one" />
+              <span className="map-point point-two" />
+              <span className="map-point point-three" />
+            </div>
+            <div className="satellite-float"><Icon name="satellite" size={34} /></div>
+            <div className="panel-copy">
+              <span className="eyebrow"><i /> EARTH INTELLIGENCE PLATFORM</span>
+              <h2>地球を読み解く。<br /><em>未来を最適化する。</em></h2>
+              <p>衛星・AI・ドローン・量子技術をひとつに。<br />地域の課題に、宇宙から答えを。</p>
+              <button className="primary-button">ミッションを開始 <Icon name="arrow" size={17} /></button>
+            </div>
+            <div className="coordinate">35.0116° N&nbsp;&nbsp; 135.7681° E<br /><span>KYOTO · JAPAN</span></div>
+          </article>
+
+          <article className="monitor-card">
+            <div className="card-heading">
+              <div><span className="eyebrow">REALTIME MONITOR</span><h3>リアルタイム監視</h3></div>
+              <button aria-label="詳細"><Icon name="chevron" size={18} /></button>
+            </div>
+            <div className="monitor-map">
+              <div className="map-river" />
+              <div className="field f1" /><div className="field f2" /><div className="field f3" /><div className="field f4" />
+              <span className="pulse p1" /><span className="pulse p2" /><span className="pulse p3" />
+              <div className="map-label"><i /> 河原町エリア</div>
+            </div>
+            <div className="monitor-stats">
+              <div><span className="stat-icon green"><Icon name="farm" size={18} /></span><p>農地コンディション<strong>良好 <b>92%</b></strong></p></div>
+              <div><span className="stat-icon blue"><Icon name="cloud" size={18} /></span><p>気象リスク<strong>低 <b>12%</b></strong></p></div>
+              <div><span className="stat-icon cyan"><Icon name="activity" size={18} /></span><p>最終更新<strong>2分前</strong></p></div>
+            </div>
+          </article>
+        </section>
+
+        <section className="section-block">
+          <div className="section-heading">
+            <div><span className="eyebrow">CORE CAPABILITIES</span><h2>統合インテリジェンス</h2></div>
+            <button className="text-button">すべての機能を見る <Icon name="arrow" size={16} /></button>
+          </div>
+          <div className="feature-grid">
+            {features.map((feature) => (
+              <button className="feature-card" key={feature.title}>
+                <span className={`feature-icon ${feature.tone}`}><Icon name={feature.icon} size={25} /></span>
+                <span className="feature-copy"><strong>{feature.title}</strong><small>{feature.description}</small><em><i /> {feature.meta}</em></span>
+                <span className="feature-arrow"><Icon name="chevron" size={17} /></span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="bottom-grid">
+          <article className="usage-card">
+            <div className="section-heading compact">
+              <div><span className="eyebrow">ACTIVE USERS</span><h2>利用状況</h2></div>
+              <select value={period} onChange={(event) => setPeriod(event.target.value)} aria-label="集計期間">
+                <option>本日</option><option>今週</option><option>今月</option>
+              </select>
+            </div>
+            <div className="audience-grid">
+              {audiences.map((audience) => (
+                <div key={audience.label}><span><Icon name={audience.icon} size={18} /></span><p>{audience.label}<strong>{audience.value}<small>ユーザー</small></strong></p></div>
+              ))}
+            </div>
+          </article>
+          <article className="quantum-banner">
+            <div className="quantum-visual"><Icon name="quantum" size={74} /></div>
+            <div><span className="eyebrow">CELESTIAL LINK · NEW</span><h2>銀河文明との通信を開始。</h2><p>量子翻訳と星間外交を体験するフィクション・シミュレーター。</p></div>
+            <a href="/galactic">通信を開く <Icon name="arrow" size={16} /></a>
+          </article>
+        </section>
+
+        <section className="architecture-section">
+          <div className="section-heading">
+            <div><span className="eyebrow">RECOMMENDED ARCHITECTURE</span><h2>推奨技術スタック</h2></div>
+            <span className="starter-badge"><i /> STARTER READY</span>
+          </div>
+          <div className="stack-flow">
+            {technologyStack.map((technology, index) => (
+              <div className="stack-step" key={technology.category}>
+                <span className={`feature-icon ${technology.tone}`}><Icon name={technology.icon} size={23} /></span>
+                <div><small>{technology.category}</small><strong>{technology.name}</strong><em>{technology.detail}</em></div>
+                {index < technologyStack.length - 1 && <span className="stack-connector"><Icon name="chevron" size={15} /></span>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="quantum-roadmap">
+          <div className="roadmap-intro">
+            <span className="eyebrow">AI → QUANTUM AI</span>
+            <h2>段階的に量子技術を導入</h2>
+            <p>まず通常のAIでデータ収集・診断基盤を構築。運用データが蓄積した段階で、計算負荷の高い最適化領域に量子技術を適用します。</p>
+          </div>
+          <div className="roadmap-phases">
+            <article className="roadmap-phase active">
+              <span className="phase-number">01</span>
+              <div><small>PHASE 1 · NOW</small><h3>通常AIで基盤構築</h3><p>Sentinel-2、DJI、PyTorch、QGISをAzure上で統合</p></div>
+              <b>実装優先</b>
+            </article>
+            <div className="phase-line"><span /></div>
+            <article className="roadmap-phase future">
+              <span className="phase-number">02</span>
+              <div><small>PHASE 2 · NEXT</small><h3>量子最適化を追加</h3>
+                <ul>{quantumUseCases.map((useCase) => <li key={useCase}>{useCase}</li>)}</ul>
+              </div>
+              <b>QPU READY</b>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
